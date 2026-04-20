@@ -1,11 +1,26 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export const CursorFollower = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
+    // Robust detection for touch devices (Mobile/Tablets)
+    const isTouchDevice = 
+      ('ontouchstart' in window) || 
+      (navigator.maxTouchPoints > 0) ||
+      // @ts-ignore - msMaxTouchPoints is for IE10/11 but good for older surfaces just in case
+      (navigator.msMaxTouchPoints > 0) ||
+      (window.matchMedia && window.matchMedia("(any-pointer: coarse)").matches);
+
+    if (isTouchDevice) {
+      setIsActive(false);
+      return; // bail out immediately, no event listeners or canvas rendering
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -14,8 +29,8 @@ export const CursorFollower = () => {
     let mouseMoved = false;
 
     const pointer = {
-      x: 0.5 * window.innerWidth,
-      y: 0.5 * window.innerHeight,
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
     };
 
     const params = {
@@ -43,30 +58,13 @@ export const CursorFollower = () => {
       pointer.y = y;
     };
 
-    const onMouseMove = (e: MouseEvent) => {
-      mouseMoved = true;
-      updatePointer(e.clientX, e.clientY);
-    };
-    const onClick = (e: MouseEvent) => updatePointer(e.clientX, e.clientY);
-    const onTouchMove = (e: TouchEvent) => {
-      mouseMoved = true;
-      updatePointer(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
-    };
+    let rafId: number | null = null;
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('click', onClick);
-    window.addEventListener('touchmove', onTouchMove, { passive: true });
-    window.addEventListener('resize', setupCanvas);
-
-    setupCanvas();
-
-    let rafId: number;
-
-    const update = (t: number) => {
-      // intro auto-motion before first real mouse event
+    const update = () => {
       if (!mouseMoved) {
-        pointer.x = (0.5 + 0.3 * Math.cos(0.002 * t) * Math.sin(0.005 * t)) * window.innerWidth;
-        pointer.y = (0.5 + 0.2 * Math.cos(0.005 * t) + 0.1 * Math.cos(0.01 * t)) * window.innerHeight;
+        // Prevent drawing anything before mouse actually moves
+        rafId = requestAnimationFrame(update);
+        return;
       }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -115,21 +113,46 @@ export const CursorFollower = () => {
       rafId = requestAnimationFrame(update);
     };
 
-    rafId = requestAnimationFrame(update);
+    const onMouseMove = (e: MouseEvent) => {
+      if (!mouseMoved) {
+        mouseMoved = true;
+        // Snap trail to the first mouse coordinate to avoid jumping from center
+        updatePointer(e.clientX, e.clientY);
+        trail.forEach(p => {
+          p.x = e.clientX;
+          p.y = e.clientY;
+        });
+        setIsVisible(true);
+        rafId = requestAnimationFrame(update);
+        return;
+      }
+      updatePointer(e.clientX, e.clientY);
+    };
+
+    const onClick = (e: MouseEvent) => updatePointer(e.clientX, e.clientY);
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('click', onClick);
+    window.addEventListener('resize', setupCanvas);
+
+    setupCanvas();
 
     return () => {
-      cancelAnimationFrame(rafId);
+      if (rafId !== null) cancelAnimationFrame(rafId);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('click', onClick);
-      window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('resize', setupCanvas);
     };
   }, []);
 
+  if (!isActive) return null;
+
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 z-[100]"
+      className={`pointer-events-none fixed inset-0 z-[100] transition-opacity duration-300 ease-in-out ${
+        isVisible ? 'opacity-100' : 'opacity-0'
+      }`}
       style={{ display: 'block' }}
     />
   );
