@@ -6,7 +6,8 @@ import { ArrowUpRight } from "lucide-react"
 
 interface Project {
   title: string
-  description: string
+  subtitle?: string
+  description: string | string[]
   year: string
   link: string
   image: string
@@ -14,25 +15,35 @@ interface Project {
 
 const projects: Project[] = [
   {
+    title: "Voidwear",
+    subtitle: "Full-Stack Fashion E-Commerce Platform",
+    description: "Built an 8-stage MongoDB Aggregation Pipeline for cart management, Razorpay checkout, and role-based Seller Dashboard.",
+    year: "2025",
+    link: "https://voidwear-alpha.vercel.app/",
+    image: "/Voidwear.png",
+  },
+  {
     title: "Memora",
-    description: "AI-Powered Knowledge Management System with Omni-Search.",
-    year: "2026",
+    subtitle: "AI Knowledge Management System",
+    description: "Multi-LLM routing engine with a RAG pipeline and Omni-Search, querying parallel sources concurrently in under 50ms.",
+    year: "2025",
     link: "https://memora-three-iota.vercel.app",
-    image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=2670&auto=format&fit=crop",
+    image: "/Memora.png",
   },
   {
     title: "AI Interview Prep",
-    description: "End-to-end AI interview platform generating Q&A sets.",
-    year: "2026",
+    subtitle: "AI Interview Preparation Platform",
+    description: "Generates role-specific, experience-calibrated Q&A sets via LLaMA 3.3-70B featuring persistent sessions and profile management.",
+    year: "2025",
     link: "https://ai-interview-preparation-1-e47v.onrender.com",
-    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2670&auto=format&fit=crop",
+    image: "/interview.png",
   },
   {
     title: "DEALMIND AI",
     description: "Real-Time Negotiation Simulator backed by Gemini API.",
     year: "2026",
     link: "https://dealmind-eosin.vercel.app",
-    image: "https://images.unsplash.com/photo-1554774853-719586f82d77?q=80&w=2670&auto=format&fit=crop",
+    image: "/nego.png",
   },
 ]
 
@@ -172,15 +183,28 @@ export function ProjectShowcase() {
                   </div>
 
                   {/* Description with fade effect */}
-                  <p
+                  <div
                     className={`
-                      text-muted-foreground text-sm md:text-base mt-2 leading-relaxed max-w-2xl
+                      mt-4
                       transition-all duration-300 ease-out
-                      ${hoveredIndex === index ? "text-foreground opacity-90" : "opacity-70"}
+                      ${hoveredIndex === index ? "opacity-100" : "opacity-70"}
                     `}
                   >
-                    {project.description}
-                  </p>
+                    {project.subtitle && (
+                      <p className="text-foreground/90 font-medium mb-2">{project.subtitle}</p>
+                    )}
+                    {Array.isArray(project.description) ? (
+                      <ul className="list-disc pl-5 space-y-1.5 text-muted-foreground text-sm md:text-base leading-relaxed max-w-3xl">
+                        {project.description.map((point, i) => (
+                          <li key={i}>{point}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-muted-foreground text-sm md:text-base leading-relaxed max-w-2xl">
+                        {project.description}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Year badge */}
